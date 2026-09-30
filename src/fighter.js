@@ -15,7 +15,14 @@ export const MOVES = {
   jkick:      { s: 5,  a: 12, r: 4,  dmg: 11, stun: 19, bstun: 11, push: 0.14, box: [0.35, 0.3, 0.95, 0.65], height: 'overhead', air: true },
   special:    { s: 14, a: 0,  r: 22, spawn: 14 },
   dash:       { s: 10, a: 24, r: 18, dmg: 15, launch: [0.14, 0.2], box: [0.2, 0.6, 1.2, 1.5], height: 'mid', heavy: true, dash: true, dashV: 0.21 },
+  // teleport follow-up and counter retaliation
+  telestrike: { s: 3,  a: 5,  r: 16, dmg: 12, launch: [0.12, 0.24], box: [0.1, 0.9, 1.05, 1.3], height: 'mid', heavy: true },
+  // counter stance: any melee hit during the active window is reversed
+  counter:    { s: 3,  a: 34, r: 14, counter: true },
 };
+
+// Which move a special starts, by kind.
+const SPECIAL_MOVE = { dash: 'dash', counter: 'counter' };
 
 const ACTIONABLE = new Set(['idle', 'walkF', 'walkB', 'crouch']);
 
@@ -43,6 +50,7 @@ export class Fighter {
     this.stun = 0; this.juggle = 0; this.specialCD = 0; this.airAttack = false; this.walkPh = 0;
     this.dead = false; this.finishPending = false; this.blockCrouch = false; this.hitHeight = 'high';
     this.squash = false; this.yawOverride = null;
+    this.shieldT = 0; this.buffT = 0; this.buffMul = 1; this.regen = 0; this.hidden = 0;
     this.buf.punch = this.buf.kick = this.buf.special = 0;
     this.model.root.scale.set(1, 1, 1);
   }
@@ -68,6 +76,10 @@ export class Fighter {
   update(inp, opp, game) {
     this.t++;
     if (this.specialCD > 0) this.specialCD--;
+    if (this.shieldT > 0) this.shieldT--;
+    if (this.buffT > 0 && --this.buffT === 0) this.buffMul = 1;
+    if (this.regen > 0 && !this.dead && this.hp > 0) { const r = Math.min(this.regen, 0.12); this.hp = Math.min(this.maxHp, this.hp + r); this.regen -= r; }
+    if (this.hidden > 0) this.hidden--;
     const b = this.buf;
     b.punch = inp.punchP ? 7 : Math.max(0, b.punch - 1);
     b.kick = inp.kickP ? 7 : Math.max(0, b.kick - 1);
@@ -83,7 +95,8 @@ export class Fighter {
       else if (b.punch) { b.punch = 0; this.startMove(inp.down ? 'uppercut' : 'jab', game); }
       else if (b.kick) { b.kick = 0; this.startMove(inp.down ? 'sweep' : fwd ? 'roundhouse' : 'kick', game); }
       else if (b.special && this.specialCD <= 0 && !game.hasProjectile(this)) {
-        b.special = 0; this.startMove(this.def.special.type === 'dash' ? 'dash' : 'special', game);
+        b.special = 0; this.specialCD = this.def.special.cd ?? 90;
+        this.startMove(SPECIAL_MOVE[this.def.special.kind] ?? 'special', game);
       } else if (inp.up) {
         this.setState('jump'); this.vy = 0.3 * S.jump; this.y = 0.001; this.airAttack = false;
         this.vx = (fwd ? 0.08 : back ? -0.07 : 0) * this.facing * S.speed;
@@ -103,7 +116,7 @@ export class Fighter {
         }
         break;
       case 'attack': this.updateMove(game); break;
-      case 'hitstun': case 'blockstun': if (--this.stun <= 0) this.setState('idle'); break;
+      case 'hitstun': case 'blockstun': case 'stunned': if (--this.stun <= 0) this.setState('idle'); break;
       case 'down': if (!this.dead && this.t >= 40) this.setState('getup'); break;
       case 'getup': if (this.t >= 24) this.setState('idle'); break;
       case 'land': if (this.t >= 5) this.setState('idle'); break;
@@ -123,14 +136,13 @@ export class Fighter {
 
   updateMove(game) {
     const m = this.move, f = this.t;
-    if (m.spawn && f === m.spawn) { game.spawnProjectile(this); this.specialCD = 75; }
+    if (m.spawn && f === m.spawn) { game.special(this); if (this.state !== 'attack' || this.move !== m) return; }
     if (m.dash) {
       if (this.hitDone && f < m.s + m.a) { this.t = m.s + m.a; this.vx *= 0.3; }
       else if (f >= m.s && f < m.s + m.a) {
         this.vx = m.dashV * this.facing * this.stats.speed;
-        if ((f - m.s) % 7 === 0) game.sfx('tung');
+        if ((f - m.s) % 7 === 0) game.sfx(this.def.special.sfx ?? 'tung');
       } else if (f >= m.s + m.a) this.vx *= 0.8;
-      if (f === m.s + m.a) this.specialCD = 90;
     }
     if (this.t >= m.s + m.a + m.r) {
       this.move = null;
@@ -172,15 +184,27 @@ export class Fighter {
     return false;
   }
 
+  // true while a counter stance is live
+  countering() {
+    const m = this.move;
+    return this.state === 'attack' && m?.counter && this.t >= m.s && this.t < m.s + m.a;
+  }
+
   receive(h) {
-    if (this.blocks(h.height)) {
+    if (!h.proj && !h.grab && this.countering()) return 'counter';
+    const m = this.move;
+    if (this.state === 'attack' && m?.dash && this.def.special.armor && this.t < m.s + m.a) {
+      this.hp -= h.dmg * 0.6; this.model.flash(0xffd040, 1.4);
+      return 'armor';
+    }
+    if (!h.grab && this.blocks(h.height)) {
       this.blockCrouch = this.state === 'crouchBlock' || (this.state === 'blockstun' && this.blockCrouch);
       if (this.hp > 1) this.hp = Math.max(1, this.hp - h.dmg * 0.12);
       this.state = 'blockstun'; this.t = 0;
       this.stun = h.bstun ?? 10; this.vx = h.dir * (h.push ?? 0.12);
       return 'block';
     }
-    const scale = Math.max(0.3, 1 - this.juggle * 0.25);
+    const scale = Math.max(0.3, 1 - this.juggle * 0.25) * (this.shieldT > 0 ? 0.5 : 1);
     this.hp -= h.dmg * scale;
     this.move = null;
     this.model.flash(0xff5030, 1.2);
@@ -190,6 +214,9 @@ export class Fighter {
       const L = h.launch || [0.06, 0.16];
       this.setState('launched');
       this.vx = h.dir * L[0]; this.vy = L[1]; this.y = Math.max(this.y, 0.01);
+    } else if (h.freeze) {
+      this.setState('stunned');
+      this.stun = h.freeze; this.vx = h.dir * 0.04;
     } else {
       this.setState('hitstun');
       this.stun = h.stun ?? 14; this.vx = h.dir * (h.push ?? 0.12);
@@ -220,7 +247,7 @@ export class Fighter {
       case 'launched': return POSE.launched;
       case 'down': return POSE.down;
       case 'getup': return seq([[0, POSE.down], [12, POSE.crouch], [24, POSE.stance]], t);
-      case 'dizzy': return dizzyPose(tm);
+      case 'dizzy': case 'stunned': return dizzyPose(tm);
       case 'win': return winPose(tm);
       case 'intro': return POSE.taunt;
     }
@@ -232,7 +259,7 @@ export class Fighter {
     if (this.dead) return 'ko';
     if (s === 'attack') return 'angry';
     if (s === 'hitstun' || s === 'launched' || s === 'down' || s === 'getup') return 'hurt';
-    if (s === 'dizzy') return 'dizzy';
+    if (s === 'dizzy' || s === 'stunned') return 'dizzy';
     if (s === 'win' || s === 'intro') return 'win';
     return 'normal';
   }
@@ -249,6 +276,7 @@ export class Fighter {
     const yawT = this.yawOverride ?? this.facing * YAW;
     this.visYaw += angleDiff(yawT, this.visYaw) * (1 - Math.exp(-12 * dt));
     root.rotation.y = this.visYaw;
+    root.visible = this.hidden <= 0;
     if (this.squash) {
       const a = Math.min(1, dt * 40);
       root.scale.x += (1.75 - root.scale.x) * a;

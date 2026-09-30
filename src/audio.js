@@ -83,6 +83,17 @@ class Sound {
       case 'throw': Nz({ dur: 0.2, vol: 0.16, type: 'bandpass', f0: 400, f1: 2400, q: 1.5 }); T({ type: 'triangle', f0: 300, f1: 700, dur: 0.15, vol: 0.08 }); break;
       case 'coin': T({ type: 'square', f0: 1318, dur: 0.05, vol: 0.06 }); T({ type: 'square', f0: 1760, dur: 0.18, vol: 0.06, t: 0.05 }); break;
       case 'wave': T({ type: 'sawtooth', f0: 220, f1: 80, dur: 0.5, vol: 0.14, lp: 1200, send: 0.3 }); break;
+      case 'march': T({ f0: 130, f1: 60, dur: 0.1, vol: 0.6 }); Nz({ dur: 0.06, vol: 0.25, f0: 1500, f1: 300 }); break;
+      case 'scream':
+        T({ type: 'sawtooth', f0: 700, f1: 1100, dur: 0.5, vol: 0.14, lp: 3200, send: 0.3 });
+        T({ type: 'square', f0: 1050, f1: 1500, dur: 0.45, vol: 0.05, lp: 4000 }); break;
+      case 'explode': T({ f0: 90, f1: 30, dur: 0.8, vol: 1, send: 0.6 }); Nz({ dur: 0.7, vol: 0.9, f0: 2500, f1: 120, send: 0.5 }); break;
+      case 'clang': T({ type: 'triangle', f0: 520, f1: 500, dur: 0.6, vol: 0.3, send: 0.5 }); T({ type: 'square', f0: 1310, f1: 1290, dur: 0.3, vol: 0.06 }); Nz({ dur: 0.08, vol: 0.4, type: 'highpass', f0: 2000 }); break;
+      case 'poof': Nz({ dur: 0.35, vol: 0.35, type: 'bandpass', f0: 2500, f1: 400, q: 0.7 }); break;
+      case 'snip': Nz({ dur: 0.05, vol: 0.3, type: 'highpass', f0: 4000 }); Nz({ dur: 0.05, vol: 0.3, type: 'highpass', f0: 4500, t: 0.08 }); break;
+      case 'cash': [1568, 2093, 2637].forEach((f, i) => T({ type: 'square', f0: f, dur: 0.07, vol: 0.05, t: i * 0.06 })); break;
+      case 'powerup': [392, 523, 659, 784, 1047].forEach((f, i) => T({ type: 'triangle', f0: f, dur: 0.12, vol: 0.12, t: i * 0.06, send: 0.3 })); break;
+      case 'counter': T({ type: 'triangle', f0: 1760, f1: 1700, dur: 0.5, vol: 0.2, send: 0.5 }); T({ f0: 880, dur: 0.4, vol: 0.2 }); break;
       case 'tung': T({ f0: 480, f1: 300, dur: 0.12, vol: 0.5 }); T({ type: 'triangle', f0: 960, f1: 700, dur: 0.05, vol: 0.15 }); break;
       case 'gavel':
         T({ f0: 120, f1: 40, dur: 0.5, vol: 1, send: 0.5 }); Nz({ dur: 0.25, vol: 0.8, f0: 3000, f1: 300, send: 0.6 });

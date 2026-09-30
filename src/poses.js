@@ -138,3 +138,7 @@ export const ANIM = {
     return f > end ? mix(p, S, Math.min(1, (f - end) / m.r)) : p;
   },
 };
+
+const guardUp = over(POSE.block, { torsoX: 0.05, headX: 0.1, lsZ: -0.2, rsZ: 0.2 });
+ANIM.telestrike = ANIM.uppercut;
+ANIM.counter = (f, m) => seq([[0, S], [m.s, guardUp], [m.s + m.a, guardUp], [m.s + m.a + m.r, S]], f);

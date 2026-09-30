@@ -2,9 +2,9 @@
 
 ### ▶ [Play it in your browser](https://yarinbnyamin.github.io/knesset-kombat-26/)
 
-A Mortal Kombat-style parody fighting game in Three.js, set in a fictional Knesset plenum.
+A Mortal Kombat-style satirical fighting game in Three.js, set in a Knesset-style plenum, starring Israel's top politicians ahead of the October 2026 election.
 
-![Fight](screenshots/fight.jpg)
+![Ben-Gvir's LOCKDOWN traps Lapid in a cage](screenshots/lockdown.jpg)
 
 ## The experiment
 
@@ -21,20 +21,45 @@ What Claude did in those ~50 minutes (16:13 → 17:03):
 
 Everything is procedural: the character models, animation, arena, textures, particles, music, sound effects and announcer (browser speech synthesis).
 
+The one-shot version had fictional caricatures:
+
 | | |
 |---|---|
-| ![Title](screenshots/title.jpg) | ![Select](screenshots/select.jpg) |
-| ![Tung Tung Sahur](screenshots/sahur.jpg) | |
+| ![Title](screenshots/title.jpg) | ![Fight](screenshots/fight.jpg) |
+| ![Select](screenshots/select.jpg) | ![Tung Tung Sahur](screenshots/sahur.jpg) |
+
+### Follow-up: the real roster
+
+After the one-shot, follow-up prompts asked Claude to use Israel's top 10 politicians, drawn in the same cartoon style, and to research each one online to design their special move. Claude researched their public personas and built a new mechanic for each ability (lobbed bombs, traps, grabs, counters, buffs, teleports).
+
+![Select screen](screenshots/select-v2.jpg)
 
 ## Features
 
 - Gavel-slam intro, title screen, character select, VS screen, best-of-3 rounds, FINISH HIM, fatality, results.
-- **8 fighters.** The Speaker, Treasurer, Opposition, Whip, Spokeswoman, Backbencher and Lobbyist are fictional caricatures. Tung Tung Sahur is a log with a bat.
-- **One special per fighter:** gavel toss, shekel storm, "נגד" ballot, filibuster sound rings, press release, paper jet, a bribe briefcase, and Sahur's tung-tung dash.
+- **11 fighters:** 10 politicians as big-head cartoon caricatures (hair, beards, glasses, knitted and velvet kippot), plus Tung Tung Sahur.
 - **Parliamentary Fatality:** a giant gavel flattens the loser.
 - **Modes:** 1 player vs CPU, 2 players on one keyboard, CPU vs CPU. Gamepads are supported.
 
-All fighters are fictional archetypes. No real MKs were harmed.
+## Roster
+
+Each special move is built on the person's public persona, slogans or famous moments.
+
+| Fighter | Special | Based on | What it does |
+|---|---|---|---|
+| Benjamin Netanyahu | RED LINE | The cartoon bomb from his 2012 UN speech | Lobs a bomb that lands on the opponent and explodes |
+| Gadi Eisenkot | YASHAR! CHARGE | His party Yashar ("straight") | A straight charge that can't be interrupted |
+| Naftali Bennett | UNDERCOVER HIPSTER | His 2015 disguise campaign ad | Vanishes, reappears behind you and strikes |
+| Yair Lapid | WHERE'S THE MONEY? | His slogan; he's also an amateur boxer | Grab that steals health |
+| Itamar Ben-Gvir | LOCKDOWN | His tough-on-prisons persona | A jail cage drops on the opponent and traps them |
+| Bezalel Smotrich | BUDGET CUT | Finance Minister | Scissors that cut the opponent's special meter to zero |
+| Avigdor Lieberman | NOT ON THE LIST | He worked as a nightclub bouncer | Grab and throw across the stage |
+| Tally Gotliv | OBJECTION! | Her Knesset committee shouting matches | A slow sonic scream that stuns |
+| Arye Deri | RESTORE PAST GLORY | The Shas slogan and his comebacks | Heals and hits harder for 5 seconds |
+| Benny Gantz | WAIT YOUR TURN | The rotation deal that never came | Counter stance that reverses any melee hit |
+| Tung Tung Sahur | TUNG TUNG DASH | The meme | Charges in swinging the bat |
+
+This is political satire, made for fun and not for profit. It is not affiliated with the Knesset, any party or any politician. Specials are based on public personas and slogans, not on legal cases or personal lives.
 
 ## Controls
 
@@ -69,12 +94,16 @@ Then open http://localhost:8026.
 
 ## Files
 
-- `src/roster.js`: the fighters (looks, stats, specials). Add `face: 'faces/x.png'` to a fighter to put an image on its head.
+- `src/roster.js`: the fighters (looks, stats, specials)
+- `src/textures.js`: knitted and velvet kippah textures
+- `tools/faceview.html`: close-up of every fighter's head, for tuning looks
+- `tools/serve.py`: local dev server with caching turned off
 - `src/fighter.js`: state machine, move frame data, hitboxes
 - `src/poses.js`: procedural animation poses
 - `src/model.js`: procedural character models, portraits
 - `src/stage.js`: the arena, lighting, fire
-- `src/projectiles.js`, `src/ai.js`, `src/audio.js` (all synthesized), `src/input.js`, `src/ui.js`
+- `src/projectiles.js`: special-move objects (bomb, cage, scissors, scream)
+- `src/ai.js`, `src/audio.js` (all synthesized), `src/input.js`, `src/ui.js`
 - `src/main.js`: game flow (title → select → versus → rounds → finish → results)
 
 Console helper: `__dbg.fight(0, 7, 'cpu')` jumps straight into a match.

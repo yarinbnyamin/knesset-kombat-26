@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { applyPose, POSE } from './poses.js';
+import { knitKippahTexture, velvetTexture } from './textures.js';
 
 const TAU = Math.PI * 2;
 const FRONT = Math.PI / 2; // SphereGeometry phi that faces +z
@@ -142,6 +143,7 @@ export function buildFighterModel(def) {
   // ---- head ----
   const F = { eyes: [], brows: [], mouth: null, mouthBase: [1, 1, 1], features: [] };
   let onHead;
+  let Sx = 1, Sy = 1, Sz = 1;
   let headC;
   if (isLog) {
     const endM = M(0xffffff, { map: W.end, roughness: 0.8 });
@@ -149,7 +151,8 @@ export function buildFighterModel(def) {
     add(new THREE.CylinderGeometry(0.37, 0.37, 0.72, 24), [skin, endM, endM], J.head, headC);
     onHead = (yaw, pitch, off = 0) => new THREE.Vector3(Math.sin(yaw) * 0.37 * (1 + off), headC.y + pitch * 0.6, Math.cos(yaw) * 0.37 * (1 + off));
   } else {
-    const R = 0.42, Sx = 1, Sy = 1.05, Sz = 0.95;
+    const R = 0.42;
+    Sx = 1; Sy = 1.05; Sz = 0.95;
     headC = new THREE.Vector3(0, 0.36, 0.02);
     add(new THREE.SphereGeometry(R, 32, 24), skin, J.head, headC, [0, 0, 0], [Sx, Sy, Sz]);
     onHead = (yaw, pitch, off = 0) => new THREE.Vector3(
@@ -159,60 +162,87 @@ export function buildFighterModel(def) {
     ).add(headC);
     const shell = (mat, r, phiS, phiL, thS, thL) => add(new THREE.SphereGeometry(R * r, 32, 16, phiS, phiL, thS, thL), mat, J.head, headC, [0, 0, 0], [Sx, Sy, Sz]);
 
-    // ears
+    // ears (pushed out past the hair so they always show)
+    const earM = M(def.skin, { roughness: 0.6 });
+    const earIn = M(new THREE.Color(def.skin).multiplyScalar(0.72), { roughness: 0.7 });
     for (const s of [1, -1]) {
-      add(new THREE.SphereGeometry(0.085, 12, 10), skin, J.head, onHead(s * 1.45, 0.02, -0.12), [0, 0, 0], [0.5, 1, 0.75]);
-      if (def.earrings) add(new THREE.SphereGeometry(0.03, 10, 8), M(0xf2c14e, { metalness: 1, roughness: 0.25 }), J.head, onHead(s * 1.45, -0.22, -0.05));
+      const ep = onHead(s * 1.5, 0.0, -0.02);
+      const ear = add(new THREE.SphereGeometry(0.1, 16, 12), earM, J.head, ep, [0, 0, 0], [0.5, 1.15, 0.8]);
+      add(new THREE.SphereGeometry(0.06, 12, 10), earIn, ear, [s * 0.05, -0.005, 0.02], [0, 0, 0], [0.6, 0.8, 0.7]);
+      if (def.earrings) add(new THREE.SphereGeometry(0.03, 10, 8), M(0xf2c14e, { metalness: 1, roughness: 0.25 }), J.head, onHead(s * 1.5, -0.3, 0.06));
     }
+    const texM = (color, kind, o = {}) => M(color, { roughness: 0.85, side: THREE.DoubleSide, ...o });
+    if (def.beard) shell(texM(def.beard, 'beard', { roughness: 0.95 }), 1.005, FRONT - 1.45, 2.9, Math.PI * 0.62, Math.PI * 0.32);
     if (def.stubble) shell(M(def.stubble, { roughness: 0.9 }), 1.012, FRONT - 1.25, 2.5, Math.PI * 0.56, Math.PI * 0.36);
 
-    // hair
+    // hair, sitting on top of the head
     const h = def.hair;
     if (h) {
-      const hairM = M(h.color, { roughness: h.style === 'slick' ? 0.25 : 0.85, side: THREE.DoubleSide });
-      const back = (r, t0, tl) => shell(hairM, r, FRONT + 1.1, TAU - 2.2, t0, tl);
+      const kind = h.style === 'curly' ? 'curly' : h.style === 'bald' ? 'stubble' : 'strands';
+      const hairM = texM(h.color, kind, { roughness: h.style === 'slick' ? 0.35 : 0.72 });
+      const line = Math.PI * 0.27; // hairline, above the brows
+      const sides = (r, t1) => shell(hairM, r, FRONT + 1.3, TAU - 2.6, line - 0.05, t1 - line + 0.05);
       switch (h.style) {
-        case 'bald':
-          shell(hairM, 1.03, FRONT + 0.95, TAU - 1.9, Math.PI * 0.4, Math.PI * 0.2);
+        case 'bald': {
+          // shaved: a faint stubble shadow around the sides and back
+          const st = texM(h.color, 'stubble', { transparent: true, opacity: 0.55, depthWrite: false });
+          shell(st, 1.01, FRONT + 1.15, TAU - 2.3, Math.PI * 0.3, Math.PI * 0.26);
           break;
+        }
         case 'short':
-          shell(hairM, 1.05, 0, TAU, 0, Math.PI * 0.36); back(1.04, Math.PI * 0.3, Math.PI * 0.3);
+          shell(hairM, 1.06, 0, TAU, 0, line); sides(1.05, Math.PI * 0.5);
           break;
         case 'slick':
-          shell(hairM, 1.04, 0, TAU, 0, Math.PI * 0.38); back(1.03, Math.PI * 0.3, Math.PI * 0.28);
+          shell(hairM, 1.05, 0, TAU, 0, line); sides(1.04, Math.PI * 0.5);
           add(new THREE.SphereGeometry(0.16, 16, 10), hairM, J.head, onHead(0.25, 0.75, -0.02), [0, 0, 0.3], [1.3, 0.55, 1]);
           break;
+        case 'swept':
+          // full, combed back, with a quiff at the front
+          shell(hairM, 1.1, 0, TAU, 0, line); sides(1.07, Math.PI * 0.5);
+          break;
+        case 'receding':
+          // high forehead: thin on top, fuller around the sides and back
+          shell(hairM, 1.04, 0, TAU, 0, Math.PI * 0.18);
+          sides(1.045, Math.PI * 0.5);
+          break;
         case 'curly': {
-          shell(hairM, 1.03, 0, TAU, 0, Math.PI * 0.34); back(1.02, Math.PI * 0.3, Math.PI * 0.3);
+          shell(hairM, 1.05, 0, TAU, 0, line); sides(1.04, Math.PI * 0.5);
           const curl = new THREE.SphereGeometry(1, 7, 5);
           for (let i = 0; i < 150; i++) {
             const phi = Math.random() * TAU;
-            const th = Math.random() * (Math.sin(phi) > 0.4 ? Math.PI * 0.3 : Math.PI * 0.56);
-            const d = new THREE.Vector3(-Math.cos(phi) * Math.sin(th) * Sx, Math.cos(th) * Sy, Math.sin(phi) * Math.sin(th) * Sz).multiplyScalar(R * 1.04).add(headC);
+            const th = Math.random() * (Math.sin(phi) > 0.4 ? line : Math.PI * 0.56);
+            const d = new THREE.Vector3(-Math.cos(phi) * Math.sin(th) * Sx, Math.cos(th) * Sy, Math.sin(phi) * Math.sin(th) * Sz).multiplyScalar(R * 1.06).add(headC);
             const r = 0.04 + Math.random() * 0.03;
             add(curl, hairM, J.head, d, [0, 0, 0], [r, r, r]);
           }
           break;
         }
-        case 'bob':
-          shell(hairM, 1.08, 0, TAU, 0, Math.PI * 0.3);
-          shell(hairM, 1.1, FRONT + 0.95, TAU - 1.9, Math.PI * 0.28, Math.PI * 0.42);
-          shell(hairM, 1.09, FRONT - 0.95, 1.9, Math.PI * 0.2, Math.PI * 0.14);
+        case 'long':
+          // parted on top, falling past the ears to the shoulders
+          shell(hairM, 1.08, 0, TAU, 0, line);
+          shell(hairM, 1.1, FRONT + 0.92, TAU - 1.84, line - 0.05, Math.PI * 0.62);
+          add(new THREE.CapsuleGeometry(0.3, 0.42, 6, 16), hairM, J.head, [0, -0.08, -0.2], [0, 0, 0], [1.32, 1, 0.6]);
+          for (const s of [1, -1]) add(new THREE.CapsuleGeometry(0.1, 0.42, 6, 12), hairM, J.head, onHead(s * 1.05, -0.45, 0.02), [0.15, 0, s * 0.08], [1, 1, 0.8]);
           break;
-        case 'messy':
-          shell(hairM, 1.05, 0, TAU, 0, Math.PI * 0.36); back(1.04, Math.PI * 0.3, Math.PI * 0.3);
-          for (let i = 0; i < 9; i++) {
-            const yaw = (Math.random() - 0.5) * 2.4, pitch = 0.9 + Math.random() * 0.5;
-            const p = onHead(yaw, pitch, 0.02);
-            add(new THREE.ConeGeometry(0.07, 0.22, 8), hairM, J.head, p, [(Math.random() - 0.5) * 0.9, 0, (Math.random() - 0.5) * 0.9 - yaw * 0.4]);
-          }
-          break;
+        default:
+          shell(hairM, 1.05, 0, TAU, 0, line); sides(1.04, Math.PI * 0.5);
       }
+    }
+
+    // kippah: knitted (kippah sruga) or black velvet
+    const kp = def.kippah;
+    if (kp) {
+      const km = kp.type === 'velvet'
+        ? new THREE.MeshPhysicalMaterial({ map: velvetTexture(kp.color).map, color: 0xffffff, roughness: 0.8, sheen: 1, sheenColor: 0x444444, sheenRoughness: 0.4, side: THREE.DoubleSide })
+        : M(0xffffff, { map: knitKippahTexture(kp.base, kp.pattern, kp.edge).map, bumpMap: knitKippahTexture(kp.base, kp.pattern, kp.edge).map, bumpScale: 2, roughness: 0.9, side: THREE.DoubleSide });
+      if (kp.type === 'velvet') mats.push(km);
+      const k = add(new THREE.SphereGeometry(R * 1.1, 32, 10, 0, TAU, 0, Math.PI * (kp.size ?? 0.22)), km, J.head, headC, [-(kp.tilt ?? 0.22), 0, 0], [Sx, Sy, Sz]);
+      k.renderOrder = 1;
     }
   }
 
   // face features
-  if (!def.face) {
+  {
     const eyeR = isLog ? 0.11 : 0.095;
     const yawE = isLog ? 0.4 : 0.36;
     for (const s of [1, -1]) {
@@ -220,7 +250,7 @@ export function buildFighterModel(def) {
       const eg = grp(J.head, p.x, p.y, p.z);
       eg.rotation.order = 'YXZ'; eg.rotation.y = s * yawE; eg.rotation.x = -0.1;
       add(new THREE.SphereGeometry(eyeR, 16, 12), white, eg, [0, 0, 0], [0, 0, 0], [1, 1, 0.6]);
-      add(new THREE.SphereGeometry(eyeR * 0.52, 12, 10), dark, eg, [0, 0, eyeR * 0.42], [0, 0, 0], [1, 1, 0.6]);
+      add(new THREE.SphereGeometry(eyeR * 0.52, 12, 10), def.eyeColor ? M(def.eyeColor, { roughness: 0.2 }) : dark, eg, [0, 0, eyeR * 0.42], [0, 0, 0], [1, 1, 0.6]);
       F.eyes.push(eg);
       const browM = M(isLog ? 0x3a1c08 : (def.brows ?? 0x222222), { roughness: 0.9 });
       const bp = onHead(s * (yawE - 0.02), isLog ? 0.42 : 0.34, 0.02);
@@ -255,11 +285,6 @@ export function buildFighterModel(def) {
       }
       add(new THREE.CylinderGeometry(0.012, 0.012, 0.1, 6), gm, J.head, onHead(0, 0.13, 0.09), [0, 0, Math.PI / 2]);
     }
-  } else {
-    const tex = new THREE.TextureLoader().load(def.face);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    const fm = M(0xffffff, { map: tex, transparent: true, alphaTest: 0.1, roughness: 0.6 });
-    add(new THREE.SphereGeometry(0.43, 32, 24, FRONT - 1.05, 2.1, Math.PI * 0.18, Math.PI * 0.6), fm, J.head, headC, [0, 0, 0], [1, 1.05, 0.96]);
   }
 
   // ---- arms ----

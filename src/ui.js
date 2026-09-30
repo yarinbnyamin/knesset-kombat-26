@@ -64,8 +64,9 @@ export function selName(p, def, locked, label) {
   if (!def) { el.innerHTML = ''; return; }
   el.innerHTML = `<div class="who">${label}${locked ? ' ✓' : ''}</div>
     <div class="he" dir="rtl">${def.he}</div>
-    <div class="en">${def.name}</div>
-    <div class="spn">SPECIAL · ${def.special.name}</div>`;
+    <div class="en">${def.name}${def.tag ? ` · <span>${def.tag}</span>` : ''}</div>
+    <div class="spn">SPECIAL · ${def.special.name}</div>
+    ${def.special.desc ? `<div class="spd">${def.special.desc}</div>` : ''}`;
 }
 
 export function versus(d1, d2, portraits) {
@@ -95,7 +96,7 @@ export function updateHud(fighters, timer, wins) {
       s.querySelector('.lag').style.width = pct + '%';
       s.querySelector('.fill').classList.toggle('low', pct < 25);
     }
-    const sp = f.specialCD > 0 ? 1 - f.specialCD / 90 : 1;
+    const sp = f.specialCD > 0 ? 1 - f.specialCD / Math.max(f.specialCD, f.def.special.cd ?? 90) : 1;
     s.querySelector('.meter div').style.width = Math.max(0, Math.min(1, sp)) * 100 + '%';
     s.querySelector('.meter').classList.toggle('ready', sp >= 1);
     const w = s.querySelectorAll('.wins span');

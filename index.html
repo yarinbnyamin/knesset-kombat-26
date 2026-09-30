@@ -72,7 +72,7 @@
   .sel-top .mini { font-family: 'Cinzel'; font-weight: 900; font-size: clamp(24px, 3.2vw, 42px); line-height: .9;
     background: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 1px #3b1e02; filter: drop-shadow(0 3px 0 #200); }
   .sel-top h2 { font-family: 'Rubik'; font-weight: 900; font-size: clamp(14px, 1.6vw, 20px); color: var(--cream); letter-spacing: .24em; margin-top: 6px; text-shadow: 0 2px 0 #000; }
-  #grid { margin-top: 2.4vh; display: grid; grid-template-columns: repeat(5, clamp(58px, 6.4vw, 100px)); gap: clamp(5px, .6vw, 9px); padding: 12px;
+  #grid { margin-top: 2.4vh; display: grid; grid-template-columns: repeat(6, clamp(50px, 6vw, 96px)); gap: clamp(5px, .6vw, 9px); padding: 12px;
     background: rgba(10,2,2,.6); border: 2px solid rgba(232,182,74,.55); box-shadow: 0 0 40px rgba(0,0,0,.7), inset 0 0 30px rgba(0,0,0,.6); }
   .card { position: relative; aspect-ratio: 3 / 4; background: radial-gradient(ellipse at 50% 30%, #7a1a12, #1a0404 75%); border: 2px solid #6a4a1a; overflow: hidden; cursor: pointer; transition: transform .08s; }
   .card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -94,6 +94,8 @@
   .selname .he { font-weight: 900; font-size: clamp(22px, 2.8vw, 40px); color: #fff0c8; text-shadow: 0 3px 0 #000, 0 0 16px rgba(255,120,30,.6); }
   .selname .en { font-family: 'Cinzel'; font-weight: 900; letter-spacing: .14em; color: var(--gold-2); font-size: clamp(12px, 1.2vw, 16px); text-shadow: 0 2px 0 #000; }
   .selname .spn { font-size: 11px; color: #9ad8ff; letter-spacing: .16em; margin-top: 4px; font-weight: 700; text-shadow: 0 1px 0 #000; }
+  .selname .en span { color: #c9a870; font-size: .8em; }
+  .selname .spd { font-size: 12px; line-height: 1.4; color: #f3dfb8; max-width: 26em; margin: 4px auto 0; text-shadow: 0 1px 0 #000, 0 0 8px #000; }
   .sel-help { position: absolute; bottom: 1.8vh; font-size: 12px; letter-spacing: .12em; color: #b08850; }
 
   /* ---------- versus ---------- */
@@ -209,7 +211,7 @@
       <button>CPU BATTLE<span dir="rtl">מחשב נגד מחשב</span></button>
       <button>CONTROLS<span dir="rtl">שליטה</span></button>
     </nav>
-    <div class="foot"><b>↑↓</b> select · <b>ENTER</b> confirm · <b>M</b> mute · a fictional parody — no real MKs were harmed</div>
+    <div class="foot"><b>↑↓</b> select · <b>ENTER</b> confirm · <b>M</b> mute · political satire, not affiliated with the Knesset or any party</div>
   </div>
 
   <div id="controls" class="screen">
