@@ -40,7 +40,7 @@ export const ROSTER = [
   {
     id: 'lapid', skin: 0xe2ae8c, brows: 0x5a5a5a, nose: 1.1, name: 'LAPID', he: 'יאיר לפיד', say: 'Lapid', pronoun: 'HIM', tag: 'THE ANCHOR',
     suit: 0x0e0e10, shirt: 0x151515, tie: null, pants: 0x0c0c0e, shoes: 0x0a0a0a,
-    hair: { style: 'swept', color: 0xd9d9d9 }, build: { width: 1.1 },
+    hair: { style: 'swept', color: 0xd9d9d9 }, build: { width: 1.28, arms: 1.4, chest: 0.3 },
     special: { kind: 'grab', name: "WHERE'S THE MONEY?", desc: 'Grabs and shakes the money out of you, healing himself.', reach: 1.75, dmg: 13, drain: 0.8, launch: [0.08, 0.2], range: 'close', cd: 100 },
     stats: { speed: 1.08, power: 1.05, health: 98, jump: 1.0 },
   },

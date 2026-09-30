@@ -91,6 +91,7 @@ export function buildFighterModel(def) {
 
   const isLog = def.type === 'log';
   const bw = def.build?.width ?? 1;
+  const armK = def.build?.arms ?? 1; // arm thickness (boxers get more)
   const belly = def.build?.belly ?? 0;
   const W = isLog ? woodTextures() : null;
   const skin = isLog ? M(0xffffff, { map: W.side, roughness: 0.85 }) : M(def.skin, { roughness: 0.55 });
@@ -115,8 +116,10 @@ export function buildFighterModel(def) {
   } else {
     add(new THREE.SphereGeometry(0.27, 18, 12), pants, J.hips, [0, 0, 0], [0, 0, 0], [bw * 1.05, 0.62, 0.78]);
     add(new THREE.CapsuleGeometry(0.28, 0.34, 6, 18), suit, J.torso, [0, 0.38, 0], [0, 0, 0], [bw, 1, 0.74]);
+    const chest = def.build?.chest ?? 0;
+    if (chest) add(new THREE.SphereGeometry(0.27, 18, 12), suit, J.torso, [0, 0.5, 0.05], [0, 0, 0], [bw * 1.02, 0.62, 0.7 + chest]);
     if (belly) add(new THREE.SphereGeometry(0.26, 18, 12), suit, J.torso, [0, 0.24, 0.07], [0, 0, 0], [bw * (1 + belly * 0.3), 0.9, 0.7 + belly]);
-    const fz = 0.28 * 0.74 + 0.004;
+    const fz = 0.28 * 0.74 + 0.004 + chest * 0.34;
     // shirt V
     const v = new THREE.Shape();
     v.moveTo(-0.1, 0.13); v.lineTo(0.1, 0.13); v.lineTo(0, -0.14); v.closePath();
@@ -181,12 +184,14 @@ export function buildFighterModel(def) {
       const kind = h.style === 'curly' ? 'curly' : h.style === 'bald' ? 'stubble' : 'strands';
       const hairM = texM(h.color, kind, { roughness: h.style === 'slick' ? 0.35 : 0.72 });
       const line = Math.PI * 0.27; // hairline, above the brows
+      // a round cap tilted back around the head center: hairline follows the skull naturally
+      const tiltCap = (mat, r, tl, tilt) => add(new THREE.SphereGeometry(R * r * Sy, 32, 16, 0, TAU, 0, tl), mat, J.head, headC, [-tilt, 0, 0], [1, 1, 0.97]);
       const sides = (r, t1) => shell(hairM, r, FRONT + 1.3, TAU - 2.6, line - 0.05, t1 - line + 0.05);
       switch (h.style) {
         case 'bald': {
-          // shaved: a faint stubble shadow around the sides and back
-          const st = texM(h.color, 'stubble', { transparent: true, opacity: 0.55, depthWrite: false });
-          shell(st, 1.01, FRONT + 1.15, TAU - 2.3, Math.PI * 0.3, Math.PI * 0.26);
+          // shaved: a soft shadow of stubble around the back, as a cap tilted far back
+          const shadow = M(new THREE.Color(def.skin).lerp(new THREE.Color(h.color), 0.35), { roughness: 0.9 });
+          tiltCap(shadow, 1.008, Math.PI * 0.5, 1.15);
           break;
         }
         case 'short':
@@ -201,9 +206,8 @@ export function buildFighterModel(def) {
           shell(hairM, 1.1, 0, TAU, 0, line); sides(1.07, Math.PI * 0.5);
           break;
         case 'receding':
-          // high forehead: thin on top, fuller around the sides and back
-          shell(hairM, 1.04, 0, TAU, 0, Math.PI * 0.18);
-          sides(1.045, Math.PI * 0.5);
+          // high forehead: a cap tilted back, so the hairline curves up at the front and down behind the ears
+          tiltCap(hairM, 1.045, Math.PI * 0.47, 0.62);
           break;
         case 'curly': {
           shell(hairM, 1.05, 0, TAU, 0, line); sides(1.04, Math.PI * 0.5);
@@ -218,11 +222,15 @@ export function buildFighterModel(def) {
           break;
         }
         case 'long':
-          // parted on top, falling past the ears to the shoulders
+          // parted on top, framing the face and falling behind the head to the shoulders
           shell(hairM, 1.08, 0, TAU, 0, line);
-          shell(hairM, 1.1, FRONT + 0.92, TAU - 1.84, line - 0.05, Math.PI * 0.62);
-          add(new THREE.CapsuleGeometry(0.3, 0.42, 6, 16), hairM, J.head, [0, -0.08, -0.2], [0, 0, 0], [1.32, 1, 0.6]);
-          for (const s of [1, -1]) add(new THREE.CapsuleGeometry(0.1, 0.42, 6, 12), hairM, J.head, onHead(s * 1.05, -0.45, 0.02), [0.15, 0, s * 0.08], [1, 1, 0.8]);
+          shell(hairM, 1.1, FRONT + 1.0, TAU - 2.0, line - 0.05, Math.PI * 0.72);
+          {
+            // one continuous curtain of hair behind the head and neck (no loose strands in front)
+            // CylinderGeometry theta 0 faces +z (the face), so leave the front ±1.1 rad open
+            const curtain = new THREE.CylinderGeometry(0.4, 0.45, 0.5, 28, 1, true, 1.1, TAU - 2.2);
+            add(curtain, hairM, J.head, [headC.x, headC.y - 0.36, headC.z - 0.06], [0, 0, 0], [1, 1, 0.82]);
+          }
           break;
         default:
           shell(hairM, 1.05, 0, TAU, 0, line); sides(1.04, Math.PI * 0.5);
@@ -288,15 +296,15 @@ export function buildFighterModel(def) {
   }
 
   // ---- arms ----
-  const armR = isLog ? 0.06 : 0.085;
+  const armR = isLog ? 0.06 : 0.085 * armK;
   for (const [s, k] of [[1, 'l'], [-1, 'r']]) {
     const sh = J[k + 's'] = grp(J.torso, s * (isLog ? 0.4 : 0.33 * bw), isLog ? 0.62 : 0.6, 0);
-    if (!isLog) add(new THREE.SphereGeometry(0.13, 14, 10), suit, sh, [0, -0.01, 0]);
+    if (!isLog) add(new THREE.SphereGeometry(0.13 * armK, 14, 10), suit, sh, [0, -0.01, 0]);
     add(new THREE.CapsuleGeometry(armR, 0.22, 4, 10), suit, sh, [0, -0.17, 0]);
     const el = J[k + 'e'] = grp(sh, 0, -0.36, 0);
     add(new THREE.CapsuleGeometry(armR * 0.92, 0.2, 4, 10), suit, el, [0, -0.16, 0]);
-    if (!isLog) add(new THREE.CylinderGeometry(0.082, 0.082, 0.05, 12), shirtM, el, [0, -0.29, 0]);
-    add(new THREE.SphereGeometry(0.1, 14, 10), skin, el, [0, -0.38, 0]);
+    if (!isLog) add(new THREE.CylinderGeometry(0.082 * armK, 0.082 * armK, 0.05, 12), shirtM, el, [0, -0.29, 0]);
+    add(new THREE.SphereGeometry(0.1 * Math.sqrt(armK), 14, 10), skin, el, [0, -0.38, 0]);
     J[k + 'w'] = grp(el, 0, -0.38, 0);
   }
 
