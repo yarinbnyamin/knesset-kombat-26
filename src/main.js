@@ -430,11 +430,6 @@ function startRound() {
   G.timer = 99; G.timerAcc = 0; G.sub = 'roundIntro'; G.subT = 0;
   G.timeScale = 1; G.hitstop = 0; G.winner = G.loser = null;
   cam.pos.set(a.x + 7, 3.8, 7.5);
-  if (G.round === 1) {
-    UI.hint(G.mode === '1p'
-      ? '<b>WASD</b> move · <b>J</b> punch · <b>K</b> kick · <b>L</b> block · <b>I</b> special · <b>S+J</b> uppercut · <b>S+K</b> sweep · <b>Esc</b> pause'
-      : G.mode === '2p' ? 'P1 <b>WASD</b> + <b>J K L I</b> · P2 <b>ARROWS</b> + <b>, . / ;</b> · <b>Esc</b> pause' : '');
-  }
 }
 
 function overlap(p, q) { return p.x0 < q.x1 && p.x1 > q.x0 && p.y0 < q.y1 && p.y1 > q.y0; }
@@ -624,7 +619,8 @@ function showResults() {
 function fightStep() {
   if (G.paused) return pauseStep();
   if (input.menu.pauseP && G.sub !== 'fatality') {
-    G.paused = true; G.menuIdx = 0; UI.setMenu('#pauseMenu', 0); UI.show('pause'); sound.play('blip');
+    G.paused = true; G.menuIdx = 0; UI.setMenu('#pauseMenu', 0);
+    UI.pauseInfo(G.fighters, G.mode); UI.show('pause'); sound.play('blip');
     return;
   }
   G.subT++;
@@ -660,7 +656,6 @@ function fightStep() {
       break;
     case 'fighting':
       if (++G.timerAcc >= 60) { G.timerAcc = 0; if (--G.timer <= 0) timeUp(); }
-      if (G.round === 1 && G.subT === 700) UI.hint('');
       break;
     case 'ko':
       if (G.subT === 45) G.timeScale = 1;

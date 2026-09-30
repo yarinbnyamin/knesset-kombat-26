@@ -159,7 +159,15 @@
   #hint b { color: var(--gold); }
 
   /* ---------- pause / results ---------- */
-  #pause { background: rgba(0,0,0,.62); backdrop-filter: blur(3px); }
+  #pause { background: rgba(0,0,0,.66); backdrop-filter: blur(3px); justify-content: flex-start; padding: 5vh 16px; overflow-y: auto; gap: 14px; }
+  #pause .menu { margin-top: 4px; }
+  .pause-help { padding: 14px 20px; max-width: min(760px, 100%); }
+  .pause-help table { margin: 0 auto; font-size: 13px; }
+  .pause-help p { margin-top: 10px; font-size: 12px; }
+  #pauseSpecials { margin-top: 10px; display: grid; gap: 4px; font-size: 12px; color: #f3dfb8; line-height: 1.45; }
+  #pauseSpecials b { color: var(--gold); }
+  #pauseTip { position: fixed; left: 14px; bottom: 12px; font: 700 11px 'Rubik'; letter-spacing: .14em; color: #d9b46a; background: rgba(10,2,2,.55);
+    border: 1px solid rgba(232,182,74,.35); padding: 4px 10px; opacity: .85; }
   #pause h2, #results h2 { font-family: 'Cinzel'; font-weight: 900; font-size: clamp(40px, 6vw, 80px); background: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent;
     -webkit-text-stroke: 1.5px #2a1400; filter: drop-shadow(0 4px 0 #200); text-align: center; line-height: 1; }
   #results { justify-content: flex-end; padding-bottom: 7vh; background: linear-gradient(180deg, transparent 35%, rgba(0,0,0,.85)); }
@@ -251,6 +259,7 @@
     <div class="side p2"><div class="bar"><div class="lag"></div><div class="fill"></div></div>
       <div class="row"><div class="nm"><b dir="rtl"></b><i></i></div><div class="wins"><span></span><span></span></div></div>
       <div class="meter"><div></div></div></div>
+    <div id="pauseTip"><kbd>ESC</kbd> / <kbd>P</kbd> · PAUSE &amp; CONTROLS</div>
   </div>
 
   <div id="banner"></div>
@@ -258,6 +267,11 @@
 
   <div id="pause" class="screen"><h2>PAUSED</h2>
     <nav class="menu" id="pauseMenu"><button>RESUME<span dir="rtl">המשך</span></button><button>RESTART MATCH<span dir="rtl">התחל מחדש</span></button><button>MAIN MENU<span dir="rtl">תפריט ראשי</span></button></nav>
+    <div class="panel pause-help">
+      <table id="pauseKeys"></table>
+      <p><b>↓ + Punch</b> uppercut · <b>↓ + Kick</b> sweep · <b>→ + Kick</b> roundhouse · jump + Punch/Kick = overhead · stand to block high, crouch to block low</p>
+      <div id="pauseSpecials"></div>
+    </div>
   </div>
 
   <div id="results" class="screen"><h2 id="resTitle"></h2><div id="resSub"></div>

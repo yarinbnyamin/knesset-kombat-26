@@ -109,3 +109,17 @@ export function results(title, sub) {
   $('#resTitle').innerHTML = title;
   $('#resSub').innerHTML = sub;
 }
+
+// Pause screen: which keys each player uses, plus both fighters' specials.
+export function pauseInfo(fighters, mode) {
+  const p2 = mode === '2p';
+  $('#pauseKeys').innerHTML = `
+    <tr><th></th><th>${p2 ? 'PLAYER 1' : 'KEYBOARD'}</th>${p2 ? '<th>PLAYER 2</th>' : ''}<th>GAMEPAD</th></tr>
+    <tr><td>Move · Jump · Crouch</td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>${p2 ? '' : ' or arrows'}</td>${p2 ? '<td><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></td>' : ''}<td>D-pad / stick</td></tr>
+    <tr><td>Punch</td><td><kbd>J</kbd></td>${p2 ? '<td><kbd>,</kbd> / <kbd>Num1</kbd></td>' : ''}<td>□ / X</td></tr>
+    <tr><td>Kick</td><td><kbd>K</kbd></td>${p2 ? '<td><kbd>.</kbd> / <kbd>Num2</kbd></td>' : ''}<td>✕ / A</td></tr>
+    <tr><td>Block</td><td><kbd>L</kbd></td>${p2 ? '<td><kbd>/</kbd> / <kbd>Num3</kbd></td>' : ''}<td>○ / B, bumpers</td></tr>
+    <tr><td>Special</td><td><kbd>I</kbd> / <kbd>U</kbd></td>${p2 ? '<td><kbd>;</kbd> / <kbd>Num5</kbd></td>' : ''}<td>△ / Y</td></tr>`;
+  $('#pauseSpecials').innerHTML = fighters.map((f, i) =>
+    `<div><b>${i ? (p2 ? 'P2' : mode === 'cpu' ? 'CPU 2' : 'CPU') : (mode === 'cpu' ? 'CPU 1' : 'P1')} · ${f.def.name}</b> — ${f.def.special.name}: ${f.def.special.desc ?? ''}</div>`).join('');
+}
