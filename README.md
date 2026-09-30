@@ -1,4 +1,6 @@
-# Knesset Kombat 26
+# Knesset Kombat 26 (Fan Remake)
+
+A fan remake of the game by **[@kishkosh_1111](https://www.instagram.com/reel/Dd37xNRiz8x/)**. The original idea and game are theirs; this is Claude's recreation from their gameplay reel.
 
 ### ▶ [Play it in your browser](https://yarinbnyamin.github.io/knesset-kombat-26/)  ·  [Play the one-shot original](https://yarinbnyamin.github.io/knesset-kombat-26/original/)
 

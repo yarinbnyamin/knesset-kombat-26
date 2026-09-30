@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Knesset Kombat 26</title>
+<title>Knesset Kombat 26 (Fan Remake)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Rubik:wght@500;700;800;900&family=Russo+One&display=swap" rel="stylesheet">
@@ -34,6 +34,8 @@
   .logo .n { font-size: clamp(54px, 10.5vw, 150px); }
   .logo .he { display: block; font-family: 'Rubik'; font-weight: 900; font-size: clamp(15px, 2vw, 26px); color: #ffd27a; letter-spacing: .12em; margin-top: 12px;
     text-shadow: 0 2px 0 #000, 0 0 12px rgba(255,120,30,.6); }
+  .logo .remake { display: inline-block; margin-top: 10px; padding: 3px 12px; font: 800 clamp(11px, 1.2vw, 14px) 'Rubik'; letter-spacing: .28em;
+    color: #2a1400; background: linear-gradient(180deg, #ffe08a, #d9a13a); border: 1px solid #fff2b0; box-shadow: 0 2px 0 #3a1a02, 0 0 14px rgba(255,170,60,.45); }
   .slam { animation: slam .7s cubic-bezier(.2,1.4,.4,1) both; }
   @keyframes slam { from { opacity: 0; transform: scale(2.6); filter: blur(10px); } to { opacity: 1; transform: none; filter: none; } }
 
@@ -52,6 +54,11 @@
     text-shadow: 0 0 14px rgba(255,190,80,.9), 0 2px 0 #000; }
   .menu button.sel::before, .menu button.sel::after { content: '◆'; position: absolute; top: 50%; transform: translateY(-50%); color: var(--gold); font-size: 13px; }
   .menu button.sel::before { left: 6px; } .menu button.sel::after { right: 6px; }
+  .credit { margin-top: 14px; text-align: center; font-size: 12px; letter-spacing: .1em; color: #d9b46a; text-decoration: none;
+    padding: 6px 14px; border: 1px solid rgba(232,182,74,.35); background: rgba(10,2,2,.55); text-shadow: 0 1px 0 #000; }
+  .credit b { color: var(--cream); }
+  .credit span { display: block; margin-top: 2px; font-size: 11px; color: #b98d4a; }
+  .credit:hover, .credit:focus-visible { border-color: var(--gold); color: var(--cream); outline: none; }
   .foot { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-size: 12px; letter-spacing: .12em; color: #a07a44; }
   .foot b { color: var(--cream); }
 
@@ -159,8 +166,12 @@
   #hint b { color: var(--gold); }
 
   /* ---------- pause / results ---------- */
-  #pause { background: rgba(0,0,0,.66); backdrop-filter: blur(3px); justify-content: flex-start; padding: 5vh 16px; overflow-y: auto; gap: 14px; }
+  /* pause: title + menu centered on screen, controls panel at the bottom */
+  #pause { background: rgba(0,0,0,.66); backdrop-filter: blur(3px); padding: 16px; overflow-y: auto; }
+  #pause.on { display: grid; grid-template-rows: 1fr auto 1fr; justify-items: center; }
+  .pause-main { grid-row: 2; display: flex; flex-direction: column; align-items: center; }
   #pause .menu { margin-top: 4px; }
+  #pause .pause-help { grid-row: 3; align-self: end; }
   .pause-help { padding: 14px 20px; max-width: min(760px, 100%); }
   .pause-help table { margin: 0 auto; font-size: 13px; }
   .pause-help p { margin-top: 10px; font-size: 12px; }
@@ -204,6 +215,7 @@
     </svg>
     <span class="w">KNESSET</span><span class="w">KOMBAT</span><span class="w n">26</span>
     <span class="he" dir="rtl">מהדורת הבחירות</span>
+    <span class="remake">FAN REMAKE · <span dir="rtl">גרסת מעריצים</span></span>
   </div>
 </template>
 
@@ -220,6 +232,10 @@
       <button id="diffBtn">CPU: NORMAL<span dir="rtl">רמת קושי: רגיל</span></button>
       <button>CONTROLS<span dir="rtl">שליטה</span></button>
     </nav>
+    <a class="credit" href="https://www.instagram.com/reel/Dd37xNRiz8x/" target="_blank" rel="noopener">
+      Original idea &amp; game by <b>@kishkosh_1111</b> · watch the reel on Instagram ↗
+      <span dir="rtl">הרעיון והמשחק המקורי: ‎@kishkosh_1111</span>
+    </a>
     <div class="foot"><b>↑↓</b> select · <b>←→</b> difficulty · <b>ENTER</b> confirm · <a href="original/" style="color:#e8b64a">play the one-shot original</a> · <b>M</b> mute · political satire, not affiliated with the Knesset or any party</div>
   </div>
 
@@ -265,8 +281,10 @@
   <div id="banner"></div>
   <div id="hint"></div>
 
-  <div id="pause" class="screen"><h2>PAUSED</h2>
+  <div id="pause" class="screen">
+    <div class="pause-main"><h2>PAUSED</h2>
     <nav class="menu" id="pauseMenu"><button>RESUME<span dir="rtl">המשך</span></button><button>RESTART MATCH<span dir="rtl">התחל מחדש</span></button><button>MAIN MENU<span dir="rtl">תפריט ראשי</span></button></nav>
+    </div>
     <div class="panel pause-help">
       <table id="pauseKeys"></table>
       <p><b>↓ + Punch</b> uppercut · <b>↓ + Kick</b> sweep · <b>→ + Kick</b> roundhouse · jump + Punch/Kick = overhead · stand to block high, crouch to block low</p>
