@@ -40,11 +40,7 @@ export class AI {
 
     // react to an incoming attack
     if (opp.state === 'attack' && opp.move?.box && dist < 2.8 && opp.t <= opp.move.s + opp.move.a) {
-      if (this.blockFor !== opp.attackId) {
-        this.blockFor = opp.attackId; this.willBlock = Math.random() < 0.3 + L * 0.45;
-        this.willCounter = me.def.special.kind === 'counter' && me.specialCD <= 0 && me.actionable() && Math.random() < 0.55;
-      }
-      if (this.willCounter && opp.t < opp.move.s) { this.willCounter = false; press('special'); return o; }
+      if (this.blockFor !== opp.attackId) { this.blockFor = opp.attackId; this.willBlock = Math.random() < 0.3 + L * 0.45; }
       if (this.willBlock) { o.block = true; o.down = opp.move.height === 'low'; return o; }
     }
     if (me.state === 'blockstun') { o.block = true; o.down = me.blockCrouch; return o; }
@@ -61,24 +57,20 @@ export class AI {
 
     if (this.holdT > 0) { this.holdT--; Object.assign(o, this.hold); return o; }
     if (!me.actionable()) return o;
-    // lower difficulty hesitates: sometimes it just stands there for a moment
-    if (dist < 2.4 && Math.random() > 0.2 + L * 0.8) { this.plan({}, 6 + (1 - L) * 18); return o; }
 
     const canSpecial = me.specialCD <= 0 && !game.projectiles.some((p) => p.owner === me);
-    const sp = me.def.special;
-    const inRange = { far: dist > 2.8, mid: dist > 1.8 && dist < 5.5, close: dist < 1.6, any: dist > 1.4 }[sp.range ?? 'far'];
-    const worth = sp.kind === 'buff' ? me.hp < me.maxHp * 0.75 : sp.kind !== 'counter';
-    const oppOpen = !['down', 'getup', 'launched'].includes(opp.state);
-    if (canSpecial && inRange && worth && oppOpen && r < 0.04 + L * 0.03) { press('special'); return o; }
+    const dash = me.def.special.type === 'dash';
 
     if (opp.state === 'down' || opp.state === 'getup') {
       if (dist < 2.5 && r < 0.5) this.plan({ [back]: true }, 10);
     } else if (opp.y > 0.5 && dist < 2.4 && opp.vy < 0.1 && r < 0.12 + L * 0.2) {
       press('punch', { down: true }); // anti-air uppercut
     } else if (dist > 5) {
-      this.plan({ [fwd]: true }, 10 + Math.random() * 15);
+      if (canSpecial && !dash && r < 0.03 + L * 0.03) press('special');
+      else this.plan({ [fwd]: true }, 10 + Math.random() * 15);
     } else if (dist > 2.1) {
-      if (r < 0.04) { o.up = true; o[fwd] = true; }
+      if (canSpecial && r < (dash ? 0.02 : 0.018)) press('special');
+      else if (r < 0.04) { o.up = true; o[fwd] = true; }
       else if (r < 0.055) this.plan({ [back]: true }, 12);
       else this.plan({ [fwd]: true }, 6 + Math.random() * 8);
     } else if (dist > 1.25) {

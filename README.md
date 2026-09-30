@@ -1,6 +1,6 @@
 # Knesset Kombat 26
 
-### ▶ [Play it in your browser](https://yarinbnyamin.github.io/knesset-kombat-26/)
+### ▶ [Play it in your browser](https://yarinbnyamin.github.io/knesset-kombat-26/)  ·  [Play the one-shot original](https://yarinbnyamin.github.io/knesset-kombat-26/original/)
 
 A Mortal Kombat-style satirical fighting game in Three.js, set in a Knesset-style plenum, starring Israel's top politicians ahead of the October 2026 election.
 
@@ -12,6 +12,8 @@ This experiment gave **Claude Opus 5.5 (High)** a gameplay video from Instagram:
 https://www.instagram.com/reel/Dd37xNRiz8x/
 
 It took Claude **about 50 minutes** to recreate a playable, similar game, one-shot. It got no other instructions besides the link. (When Claude asked clarifying questions, the only answer was "it's one-shot, do your best".)
+
+> **Only the first commit is the one-shot:** [`c14e669`](https://github.com/yarinbnyamin/knesset-kombat-26/tree/c14e669486c661c5d229f2e9b2154642d85fb4b6). You can still play that exact version at [/original](https://yarinbnyamin.github.io/knesset-kombat-26/original/). Everything after it (the real roster, the new abilities, CPU difficulty) came from follow-up prompts.
 
 What Claude did in those ~50 minutes (16:13 → 17:03):
 
@@ -28,9 +30,9 @@ The one-shot version had fictional caricatures:
 | ![Title](screenshots/title.jpg) | ![Fight](screenshots/fight.jpg) |
 | ![Select](screenshots/select.jpg) | ![Tung Tung Sahur](screenshots/sahur.jpg) |
 
-### Follow-up: the real roster
+### After the one-shot: the real roster
 
-After the one-shot, follow-up prompts asked Claude to use Israel's top 10 politicians, drawn in the same cartoon style, and to research each one online to design their special move. Claude researched their public personas and built a new mechanic for each ability (lobbed bombs, traps, grabs, counters, buffs, teleports).
+In later commits, follow-up prompts asked Claude to use Israel's top 10 politicians, drawn in the same cartoon style, and to research each one online to design their special move. Claude researched their public personas and built a new mechanic for each ability (lobbed bombs, traps, grabs, counters, buffs, teleports).
 
 ![Select screen](screenshots/select-v2.jpg)
 
@@ -40,6 +42,7 @@ After the one-shot, follow-up prompts asked Claude to use Israel's top 10 politi
 - **11 fighters:** 10 politicians as big-head cartoon caricatures (hair, beards, glasses, knitted and velvet kippot), plus Tung Tung Sahur.
 - **Parliamentary Fatality:** a giant gavel flattens the loser.
 - **Modes:** 1 player vs CPU, 2 players on one keyboard, CPU vs CPU. Gamepads are supported.
+- **CPU difficulty:** Easy, Normal, Hard or Knesset Veteran, set on the title screen (←/→ on the CPU item). Your choice is remembered.
 
 ## Roster
 
@@ -96,6 +99,7 @@ Then open http://localhost:8026.
 
 - `src/roster.js`: the fighters (looks, stats, specials)
 - `src/textures.js`: knitted and velvet kippah textures
+- `original/`: the one-shot version from the first commit, unmodified
 - `tools/faceview.html`: close-up of every fighter's head, for tuning looks
 - `tools/serve.py`: local dev server with caching turned off
 - `src/fighter.js`: state machine, move frame data, hitboxes

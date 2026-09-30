@@ -8,32 +8,16 @@ import { renderPortraits, makeGavel } from './model.js';
 import { buildStage } from './stage.js';
 import { Particles, Decals } from './particles.js';
 import { Fighter } from './fighter.js';
-import { Projectile, makeTrap } from './projectiles.js';
+import { Projectile, PROJ } from './projectiles.js';
 import { Input, NONE } from './input.js';
 import { AI } from './ai.js';
 import { sound } from './audio.js';
 import * as UI from './ui.js';
 
-const STEP = 1 / 60, WALL = 9.5, MAX_SEP = 10.5, COLS = 6, N = ROSTER.length;
+const STEP = 1 / 60, WALL = 9.5, MAX_SEP = 10.5, COLS = 5, N = ROSTER.length;
 const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
 const rand = (a, b) => a + Math.random() * (b - a);
 const rint = (n) => Math.floor(Math.random() * n);
-
-// CPU difficulty: AI skill level and label (remembered per browser)
-const DIFFS = [
-  { id: 'easy', en: 'EASY', he: 'קל', level: 0.28, power: 0.7 },
-  { id: 'normal', en: 'NORMAL', he: 'רגיל', level: 0.45, power: 1 },
-  { id: 'hard', en: 'HARD', he: 'קשה', level: 0.8, power: 1.1 },
-  { id: 'insane', en: 'KNESSET VETERAN', he: 'ותיק כנסת', level: 1, power: 1.25 },
-];
-let diffIdx = 1;
-try { const saved = DIFFS.findIndex((d) => d.id === localStorage.getItem('kk26-difficulty')); if (saved >= 0) diffIdx = saved; } catch { /* storage unavailable */ }
-function setDifficulty(i) {
-  diffIdx = (i + DIFFS.length) % DIFFS.length;
-  const d = DIFFS[diffIdx];
-  document.getElementById('diffBtn').innerHTML = `CPU: ${d.en}<span dir="rtl">רמת קושי: ${d.he}</span>`;
-  try { localStorage.setItem('kk26-difficulty', d.id); } catch { /* storage unavailable */ }
-}
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const easeOut = (t) => 1 - (1 - t) * (1 - t);
 const v3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -84,7 +68,7 @@ input.onKey = (code) => {
 
 const G = {
   state: 'boot', t: 0, mode: '1p', sel: [0, 1], locked: [false, false], showP2: false,
-  fighters: [], ais: [null, null], previews: [null, null], attract: [], projectiles: [], traps: [],
+  fighters: [], ais: [null, null], previews: [null, null], attract: [], projectiles: [],
   round: 1, wins: [0, 0], timer: 99, timerAcc: 0, sub: '', subT: 0,
   hitstop: 0, timeScale: 1, shake: 0, paused: false, menuIdx: 0,
   winner: null, loser: null, fatal: null, flawless: false, lightT: 4, cpuSpin: 0, selDone: 0,
@@ -96,112 +80,17 @@ const game = {
   get projectiles() { return G.projectiles; },
   sfx: (n, v) => sound.play(n, v),
   hasProjectile: (f) => G.projectiles.some((p) => p.owner === f && p.alive),
-  special(f) { doSpecial(f); },
+  spawnProjectile(f) {
+    const type = f.def.special.type, d = PROJ[type];
+    const n = d.count ?? 1;
+    for (let i = 0; i < n; i++) G.projectiles.push(new Projectile(f, type, scene, n > 1 ? (i - 1) * 0.42 : 0, n > 1 ? -i * 0.45 : 0));
+    sound.play(d.sfx);
+  },
   onBodyLand(f) {
     sound.play('body'); G.shake = Math.max(G.shake, 0.18);
     for (let i = 0; i < 16; i++) fx.debris.spawn(f.x + rand(-0.8, 0.8), 0.08, rand(-0.4, 0.4), rand(-2, 2), rand(0.3, 1.2), rand(-0.6, 0.6), rand(0.5, 0.9), rand(0.2, 0.35), 0.3, 0.22, 0.18, 0.45, 0, 2, -1.2);
   },
 };
-
-// ---------------------------------------------------------------- specials
-function puff(x, y, n = 40, col = [0.55, 0.55, 0.6]) {
-  for (let i = 0; i < n; i++) fx.debris.spawn(x + rand(-0.5, 0.5), y + rand(0, 2.2), rand(-0.4, 0.4), rand(-2, 2), rand(-0.5, 1.5), rand(-1, 1), rand(0.4, 0.8), rand(0.3, 0.6), col[0], col[1], col[2], 0.7, 0, 3, -1.5);
-}
-
-function doSpecial(f) {
-  const sp = f.def.special, opp = G.fighters.find((o) => o !== f);
-  if (!opp) return;
-  switch (sp.kind) {
-    case 'proj': {
-      const p = new Projectile(f, sp, scene);
-      if (sp.grav) {
-        // lob: pick the speed that lands the bomb on the opponent
-        const floor = 0.35, T = (sp.vy + Math.sqrt(sp.vy * sp.vy + 2 * -sp.grav * (p.y - floor))) / -sp.grav;
-        p.vx = f.facing * clamp(Math.abs(opp.x - p.x) / T, 0.05, 0.2);
-      }
-      G.projectiles.push(p);
-      sound.play(sp.sfx ?? 'throw');
-      break;
-    }
-    case 'drop':
-      G.projectiles.push(new Projectile(f, { ...sp, drop: true }, scene, { x: opp.x }));
-      sound.play('whoosh', 1.3);
-      break;
-    case 'teleport': {
-      puff(f.x, 0, 50); sound.play('poof');
-      const side = Math.sign(opp.x - f.x) || 1;
-      let nx = opp.x + side * 1.0;
-      if (Math.abs(nx) > WALL) nx = opp.x - side * 1.0;
-      f.x = nx; f.y = 0; f.hidden = 8;
-      f.facing = Math.sign(opp.x - f.x) || -side;
-      puff(f.x, 0, 50);
-      f.startMove('telestrike', game);
-      break;
-    }
-    case 'grab': {
-      const inReach = Math.abs(opp.x - f.x) <= sp.reach && opp.y < 0.6 && opp.hurtBox() && opp.state !== 'launched';
-      if (!inReach) { sound.play('whoosh'); break; }
-      const pt = v3((f.x + opp.x) / 2, 1.5, 0.3);
-      const res = applyHit(f, opp, { dmg: sp.dmg * f.stats.power * f.buffMul, launch: sp.launch, height: 'grab', heavy: true, dir: f.facing, grab: true }, pt);
-      if (res !== 'hit') break;
-      if (sp.drain) {
-        f.hp = Math.min(f.maxHp, f.hp + sp.dmg * sp.drain);
-        sound.play('cash');
-        for (let i = 0; i < 30; i++) fx.sparks.spawn(opp.x, 1.6, 0.2, rand(-3, 3), rand(1, 5), rand(-1, 1), 0.9, 0.12, 2.4, 1.8, 0.3, 1, -10, 0.5, 0.3);
-        for (let i = 0; i < 18; i++) fx.debris.spawn(opp.x, 1.8, 0.2, rand(-2.5, 2.5), rand(1, 4), rand(-1, 1), 1.2, 0.16, 0.25, 0.65, 0.3, 1, -5, 1, 0.2);
-      }
-      if (sp.throw) { G.shake = Math.max(G.shake, 0.35); opp.vy += 0.05; }
-      break;
-    }
-    case 'buff':
-      f.buffMul = sp.mul; f.buffT = sp.dur; f.regen += sp.heal;
-      sound.play('powerup'); UI.flash(0.25, 300, '#ffd76a');
-      for (let i = 0; i < 60; i++) fx.sparks.spawn(f.x + rand(-0.6, 0.6), rand(0, 2.6), rand(-0.4, 0.4), 0, rand(1, 3), 0, rand(0.5, 1), 0.12, 2.6, 2, 0.6, 1, 0, 0.5, 1);
-      break;
-  }
-}
-
-// A projectile that hit (or a bomb that landed) applies its effects.
-function projectileHit(p, t) {
-  const c = p.cfg, pt = v3(p.x, p.y, 0.3);
-  if (c.explode) return explode(p);
-  const res = applyHit(p.owner, t, { dmg: p.dmg, stun: 18, bstun: 12, push: 0.16, height: 'mid', heavy: true, dir: p.dir, proj: true, freeze: c.freeze, launch: c.launch }, pt);
-  if (res === 'hit' && c.meter) { t.specialCD = Math.max(t.specialCD, c.meter); sound.play('snip'); }
-  if (res === 'hit' && c.drop && c.freeze && t.state === 'stunned') {
-    G.traps.push({ mesh: makeTrap(scene, t.x), target: t });
-    sound.play('clang');
-  }
-}
-
-function explode(p) {
-  const c = p.cfg, t = G.fighters.find((o) => o !== p.owner);
-  p.kill();
-  const at = v3(p.x, Math.max(0.4, p.y), 0.2);
-  sound.play('explode'); G.shake = Math.max(G.shake, 0.45); UI.flash(0.35, 250, '#ffb060');
-  sparks(at, 0, 70, [3, 1.6, 0.4], 7);
-  for (let i = 0; i < 50; i++) fx.fire.spawn(at.x + rand(-0.6, 0.6), at.y + rand(0, 0.5), rand(-0.5, 0.5), rand(-2, 2), rand(1, 4), rand(-1, 1), rand(0.4, 0.8), rand(0.4, 0.8), 2.6, 1, 0.2, 1, 1, 1.5, 1);
-  puff(at.x, 0, 30, [0.2, 0.18, 0.16]);
-  if (t && Math.abs(t.x - at.x) < c.explode && t.y < 2.4) {
-    applyHit(p.owner, t, { dmg: p.dmg, height: 'mid', heavy: true, dir: Math.sign(t.x - at.x) || p.dir, proj: true, launch: c.launch, bstun: 14, push: 0.2 }, v3(t.x, 1.2, 0.3));
-  }
-}
-
-function updateTraps() {
-  G.traps = G.traps.filter((tr) => {
-    const alive = tr.target.state === 'stunned' && !tr.target.dead;
-    if (!alive) { scene.remove(tr.mesh); tr.mesh.traverse((m) => { if (m.isMesh) { m.geometry.dispose(); m.material.dispose(); } }); return false; }
-    tr.mesh.position.x = tr.target.x;
-    return true;
-  });
-}
-
-function specialAuras() {
-  for (const f of G.fighters) {
-    if (f.buffT > 0 && Math.random() < 0.6) fx.sparks.spawn(f.x + rand(-0.5, 0.5), rand(0.2, 2.4), rand(-0.3, 0.3), 0, rand(0.8, 2), 0, 0.6, 0.1, 2.6, 2, 0.5, 1, 0, 0.5, 1);
-    if (f.countering() && Math.random() < 0.8) fx.sparks.spawn(f.x + f.facing * 0.5 + rand(-0.3, 0.3), rand(1, 2.4), 0.3, 0, rand(0.2, 0.8), 0, 0.3, 0.14, 0.6, 1.8, 3, 1, 0, 1, 1);
-    if (f.state === 'attack' && f.move?.dash && f.def.special.armor && Math.random() < 0.8) fx.sparks.spawn(f.x - f.facing * 0.4, rand(0.3, 2.2), 0.2, -f.facing * 3, 0, 0, 0.3, 0.16, 2.6, 2, 0.8, 1, 0, 2, 1);
-  }
-}
 
 // ---------------------------------------------------------------- fx helpers
 function sparks(p, dir, n, col = [3, 2.2, 0.8], speed = 6) {
@@ -223,9 +112,8 @@ function blood(p, dir, n, power = 1) {
 function setState(s) { G.state = s; G.t = 0; }
 function disposeAll(list) { for (const f of list) f?.dispose(); }
 function clearProjectiles() { for (const p of G.projectiles) p.kill(); G.projectiles = []; }
-function clearTraps() { for (const t of G.traps) scene.remove(t.mesh); G.traps = []; }
 function clearFighters() {
-  disposeAll(G.fighters); G.fighters = []; clearProjectiles(); clearTraps(); decals.clear();
+  disposeAll(G.fighters); G.fighters = []; clearProjectiles(); decals.clear();
   if (G.fatal) { scene.remove(G.fatal.pivot); G.fatal = null; }
 }
 function clearPreviews() { disposeAll(G.previews); G.previews = [null, null]; }
@@ -270,8 +158,7 @@ function enterTitle() {
 }
 function titleStep() {
   const m = input.menu;
-  if (m.upP || m.downP) { G.menuIdx = (G.menuIdx + (m.downP ? 1 : 4)) % 5; UI.setMenu('#titleMenu', G.menuIdx); sound.play('blip'); }
-  if (G.menuIdx === 3 && (m.leftP || m.rightP)) { setDifficulty(diffIdx + (m.rightP ? 1 : -1)); sound.play('blip'); }
+  if (m.upP || m.downP) { G.menuIdx = (G.menuIdx + (m.downP ? 1 : 3)) % 4; UI.setMenu('#titleMenu', G.menuIdx); sound.play('blip'); }
   if (m.confirmP) return titleChoose(G.menuIdx);
   const ph = G.t % 240;
   if (ph === 120) G.attract[rint(2)].setState('intro');
@@ -285,8 +172,7 @@ function titleStep() {
 }
 function titleChoose(i) {
   sound.play('confirm');
-  if (i === 3) { setDifficulty(diffIdx + 1); return; }
-  if (i === 4) { setState('controls'); UI.show('controls'); input.takeAny(); return; }
+  if (i === 3) { setState('controls'); UI.show('controls'); input.takeAny(); return; }
   G.mode = ['1p', '2p', 'cpu'][i];
   input.solo = G.mode !== '2p';
   enterSelect();
@@ -305,7 +191,7 @@ function enterSelect() {
   G.showP2 = G.mode !== '1p';
   document.getElementById('selHelp').innerHTML = G.mode === '2p'
     ? 'P1: <b>WASD</b> + <b>J</b> to pick · P2: <b>ARROWS</b> + <b>,</b> to pick · back: <b>K</b> / <b>.</b>'
-    : G.mode === '1p' ? `<b>ARROWS / WASD</b> move · <b>ENTER / J</b> pick · <b>ESC</b> back · CPU: <b>${DIFFS[diffIdx].en}</b>` : `The CPUs are choosing… · CPU: <b>${DIFFS[diffIdx].en}</b>`;
+    : G.mode === '1p' ? '<b>ARROWS / WASD</b> move · <b>ENTER / J</b> pick · <b>ESC</b> back' : 'The CPUs are choosing…';
   refreshSelect();
 }
 
@@ -410,10 +296,7 @@ function versusStep() {
 function startMatch() {
   clearPreviews(); clearAttract(); clearFighters();
   G.fighters = [0, 1].map((i) => new Fighter(ROSTER[G.sel[i]], i, scene));
-  const D = DIFFS[diffIdx];
-  G.ais = [G.mode === 'cpu' ? new AI(D.level) : null, G.mode === '2p' ? null : new AI(D.level)];
-  // in 1P the CPU's hits scale with difficulty
-  if (G.mode === '1p') G.fighters[1].stats.power *= D.power;
+  G.ais = [G.mode === 'cpu' ? new AI(0.6) : null, G.mode === '2p' ? null : new AI(G.mode === 'cpu' ? 0.6 : 0.4)];
   G.wins = [0, 0]; G.round = 1; G.paused = false;
   setState('fight'); UI.show(null); UI.hud(true); UI.setupHud(G.fighters);
   stage.setMood('fight'); sound.startMusic('fight');
@@ -425,7 +308,7 @@ function startRound() {
   a.reset(-2.6); b.reset(2.6);
   a.setState('intro'); b.setState('intro');
   G.ais.forEach((ai) => ai?.reset());
-  clearProjectiles(); clearTraps(); decals.clear(); fx.blood.clear();
+  clearProjectiles(); decals.clear(); fx.blood.clear();
   if (G.fatal) { scene.remove(G.fatal.pivot); G.fatal = null; }
   G.timer = 99; G.timerAcc = 0; G.sub = 'roundIntro'; G.subT = 0;
   G.timeScale = 1; G.hitstop = 0; G.winner = G.loser = null;
@@ -462,7 +345,7 @@ function resolveHits() {
   }
   for (const [att, def, box, hb, m] of ev) {
     const pt = v3((Math.max(box.x0, hb.x0) + Math.min(box.x1, hb.x1)) / 2, (Math.max(box.y0, hb.y0) + Math.min(box.y1, hb.y1)) / 2, 0.3);
-    applyHit(att, def, { dmg: m.dmg * att.stats.power * att.buffMul, stun: m.stun, bstun: m.bstun, push: m.push, launch: m.launch, height: m.height, heavy: m.heavy, dir: att.facing }, pt);
+    applyHit(att, def, { dmg: m.dmg * att.stats.power, stun: m.stun, bstun: m.bstun, push: m.push, launch: m.launch, height: m.height, heavy: m.heavy, dir: att.facing }, pt);
   }
 }
 
@@ -471,8 +354,7 @@ function resolveProjectiles() {
   for (let i = 0; i < ps.length; i++) {
     for (let j = i + 1; j < ps.length; j++) {
       const p = ps[i], q = ps[j];
-      const pb = p.box(), qb = q.box();
-      if (p.alive && q.alive && p.owner !== q.owner && pb && qb && overlap(pb, qb)) {
+      if (p.alive && q.alive && p.owner !== q.owner && overlap(p.box(), q.box())) {
         p.kill(); q.kill();
         sparks(v3((p.x + q.x) / 2, p.y, 0.2), 0, 40, [2.5, 2.2, 1.5]); sound.play('block');
       }
@@ -481,30 +363,18 @@ function resolveProjectiles() {
   for (const p of ps) {
     if (!p.alive) continue;
     const t = p.owner === G.fighters[0] ? G.fighters[1] : G.fighters[0];
-    const hb = t.hurtBox(), pb = p.box();
-    if (hb && pb && overlap(pb, hb)) {
-      if (!p.cfg.explode) p.kill();
-      projectileHit(p, t);
-    } else if (p.expired) explode(p);
-    else if (p.landed && !p.clanged) { p.clanged = true; sound.play('clang'); G.shake = Math.max(G.shake, 0.2); }
+    const hb = t.hurtBox();
+    if (hb && overlap(p.box(), hb)) {
+      p.kill();
+      applyHit(p.owner, t, { dmg: p.dmg, stun: 18, bstun: 12, push: 0.16, height: 'mid', heavy: true, dir: Math.sign(p.vx), proj: true }, v3(p.x, p.y, 0.3));
+    }
   }
 }
 
 function applyHit(att, def, h, pt) {
   if (G.sub === 'finish' && def === G.loser) return finishHit(att, def, h, pt);
-  if (G.sub === 'victory' || G.sub === 'fatality' || def.dead) return 'none';
+  if (G.sub === 'victory' || G.sub === 'fatality' || def.dead) return;
   const res = def.receive(h);
-  if (res === 'counter') {
-    sparks(pt, -h.dir, 40, [0.8, 2, 3.2], 6); sound.play('counter'); G.hitstop = 10; UI.flash(0.3, 250, '#9ad8ff');
-    def.facing = Math.sign(att.x - def.x) || def.facing;
-    def.startMove('telestrike', game);
-    return res;
-  }
-  if (res === 'armor') {
-    sparks(pt, h.dir, 24, [3, 2.4, 0.8], 5); sound.play('block'); G.hitstop = 3;
-    if (def.hp <= 0) onKO(att, def);
-    return res;
-  }
   if (res === 'block') {
     sparks(pt, -h.dir, 18, [1.4, 2, 3], 5); sound.play('block'); G.hitstop = 4;
   } else {
@@ -515,7 +385,6 @@ function applyHit(att, def, h, pt) {
     if (def.hp <= 0) onKO(att, def);
   }
   if (!h.proj && Math.abs(def.x) > WALL - 0.4) att.vx = -att.facing * 0.12;
-  return res;
 }
 
 function onKO(W, L) {
@@ -540,7 +409,6 @@ function finishHit(W, L, h, pt) {
   sound.play('heavy'); sound.play('boom', 0.7);
   G.hitstop = 12; G.shake = 0.4; G.timeScale = 0.35;
   G.sub = 'finished'; G.subT = 0; UI.hint('');
-  return 'hit';
 }
 
 function startFatality() {
@@ -645,7 +513,6 @@ function fightStep() {
     for (const p of G.projectiles) p.update(fx);
     resolveProjectiles();
     resolveHits();
-    updateTraps(); specialAuras();
     G.projectiles = G.projectiles.filter((p) => p.alive);
   }
 
@@ -788,7 +655,6 @@ function step() {
 }
 
 stage.setMood('title');
-setDifficulty(diffIdx);
 let last = performance.now(), acc = 0, time = 0;
 function frame(now) {
   requestAnimationFrame(frame);
@@ -813,8 +679,5 @@ requestAnimationFrame(frame);
 // console helpers: __dbg.fight(0, 7, 'cpu')
 window.__dbg = {
   game, ROSTER,
-  difficulty(i) { setDifficulty(i); },
-  tick(n = 1) { for (let i = 0; i < n; i++) { input.poll(); step(); } },
-  special(i) { const f = G.fighters[i]; f.specialCD = 0; f.buf.special = 7; },
   fight(a = 0, b = 1, mode = '1p') { G.mode = mode; input.solo = mode !== '2p'; G.sel = [a, b]; sound.init(); startMatch(); },
 };
