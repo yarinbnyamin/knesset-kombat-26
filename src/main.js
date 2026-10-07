@@ -13,6 +13,7 @@ import { Input, NONE } from './input.js';
 import { AI } from './ai.js';
 import { sound } from './audio.js';
 import * as UI from './ui.js';
+import { TouchControls } from './touch.js';
 
 const STEP = 1 / 60, WALL = 9.5, MAX_SEP = 10.5, COLS = 6, N = ROSTER.length;
 const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
@@ -76,6 +77,18 @@ const stage = buildStage(scene, renderer);
 const portraits = renderPortraits(ROSTER);
 
 const input = new Input();
+
+// Touch devices get on-screen controls (also forced on with ?touch).
+const touch = new TouchControls(document.getElementById('ui'));
+input.touch = touch.state;
+let touchMode = new URLSearchParams(location.search).has('touch') || matchMedia('(pointer: coarse)').matches;
+const setTouchMode = (on) => {
+  touchMode = on;
+  document.body.classList.toggle('touch', on);
+  document.querySelector('#boot .press').firstChild.textContent = on ? 'TAP TO START' : 'PRESS ANY KEY';
+};
+setTouchMode(touchMode);
+addEventListener('touchstart', () => { if (!touchMode) setTouchMode(true); }, { passive: true });
 addEventListener('keydown', () => sound.init());
 addEventListener('pointerdown', () => sound.init());
 input.onKey = (code) => {
@@ -620,7 +633,7 @@ function fightStep() {
   if (G.paused) return pauseStep();
   if (input.menu.pauseP && G.sub !== 'fatality') {
     G.paused = true; G.menuIdx = 0; UI.setMenu('#pauseMenu', 0);
-    UI.pauseInfo(G.fighters, G.mode); UI.show('pause'); sound.play('blip');
+    UI.pauseInfo(G.fighters, G.mode, touchMode); UI.show('pause'); sound.play('blip');
     return;
   }
   G.subT++;
@@ -801,6 +814,8 @@ function frame(now) {
   const s = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
   for (const p of Object.values(fx)) p.mat.uniforms.uScale.value = s;
   if (G.state === 'fight' || G.state === 'results') UI.updateHud(G.fighters, G.timer, G.wins);
+  touch.show(touchMode && G.state === 'fight' && !G.paused);
+  if (touch.visible) touch.setSpecialReady(G.fighters[0].specialCD <= 0);
   composer.render();
 }
 requestAnimationFrame(frame);

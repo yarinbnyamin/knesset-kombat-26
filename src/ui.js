@@ -111,9 +111,16 @@ export function results(title, sub) {
 }
 
 // Pause screen: which keys each player uses, plus both fighters' specials.
-export function pauseInfo(fighters, mode) {
+export function pauseInfo(fighters, mode, touch = false) {
   const p2 = mode === '2p';
-  $('#pauseKeys').innerHTML = `
+  if (touch) {
+    $('#pauseKeys').innerHTML = `
+    <tr><th></th><th>ON-SCREEN CONTROLS</th></tr>
+    <tr><td>Move · Jump · Crouch</td><td>Joystick (touch anywhere on the left side)</td></tr>
+    <tr><td>Punch · Kick · Block</td><td>The buttons on the right</td></tr>
+    <tr><td>Special</td><td>Top button (glows blue when ready)</td></tr>
+    <tr><td>Uppercut · Sweep</td><td>Joystick down + Punch · Joystick down + Kick</td></tr>`;
+  } else $('#pauseKeys').innerHTML = `
     <tr><th></th><th>${p2 ? 'PLAYER 1' : 'KEYBOARD'}</th>${p2 ? '<th>PLAYER 2</th>' : ''}<th>GAMEPAD</th></tr>
     <tr><td>Move · Jump · Crouch</td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>${p2 ? '' : ' or arrows'}</td>${p2 ? '<td><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></td>' : ''}<td>D-pad / stick</td></tr>
     <tr><td>Punch</td><td><kbd>J</kbd></td>${p2 ? '<td><kbd>,</kbd> / <kbd>Num1</kbd></td>' : ''}<td>□ / X</td></tr>

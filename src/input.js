@@ -28,6 +28,7 @@ export class Input {
   constructor() {
     this.down = new Set(); this.pressed = new Set();
     this.solo = true;
+    this.touch = null; // set to TouchControls.state
     this.prevPad = [{}, {}];
     this.players = [{ ...NONE, menu: {} }, { ...NONE, menu: {} }];
     this.menu = {};
@@ -52,6 +53,12 @@ export class Input {
       // In single-player any pad drives P1.
       for (const k in padNow[1]) padNow[0][k] = padNow[0][k] || padNow[1][k];
       padNow[1] = null;
+    }
+    // on-screen touch controls act as an extra gamepad for player 1
+    const t = this.touch;
+    if (t && Object.values(t).some(Boolean)) {
+      padNow[0] = padNow[0] || {};
+      for (const k in t) padNow[0][k] = padNow[0][k] || t[k];
     }
     const menu = { upP: false, downP: false, leftP: false, rightP: false, confirmP: false, backP: false, pauseP: false };
     for (const a of ['up', 'down', 'left', 'right', 'confirm', 'back', 'pause']) menu[a + 'P'] = has(MENU_KEYS[a], this.pressed);

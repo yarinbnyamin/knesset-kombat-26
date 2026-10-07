@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Knesset Kombat 26 (Fan Remake)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,7 +17,7 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; background: var(--ink); overflow: hidden; color: #fff; font-family: 'Rubik', system-ui, sans-serif; user-select: none; -webkit-user-select: none; }
-  #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
   #ui { position: fixed; inset: 0; pointer-events: none; }
   .vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.7) 100%); }
   #flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
@@ -183,6 +183,66 @@
     -webkit-text-stroke: 1.5px #2a1400; filter: drop-shadow(0 4px 0 #200); text-align: center; line-height: 1; }
   #results { justify-content: flex-end; padding-bottom: 7vh; background: linear-gradient(180deg, transparent 35%, rgba(0,0,0,.85)); }
   #resSub { font-weight: 900; color: var(--cream); letter-spacing: .14em; margin-top: 8px; text-shadow: 0 2px 0 #000; text-align: center; }
+  /* ---------- touch controls (phones / tablets) ---------- */
+  #touch { position: absolute; inset: 0; display: none; pointer-events: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  #touch.on { display: block; }
+  .tc-zone { position: absolute; left: 0; bottom: 0; width: 50%; height: 64%; pointer-events: auto; touch-action: none; }
+  .tc-stick { position: absolute; left: calc(84px + env(safe-area-inset-left, 0px)); top: calc(100% - 96px - env(safe-area-inset-bottom, 0px));
+    width: 124px; height: 124px; margin: -62px 0 0 -62px; border-radius: 50%; border: 2px solid rgba(232,182,74,.6);
+    background: radial-gradient(circle, rgba(70,12,8,.35), rgba(10,2,2,.6)); opacity: .55; transition: opacity .15s; }
+  .tc-stick.active { opacity: .95; }
+  .tc-knob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff1b8, #e8b64a 55%, #7a4a0a); box-shadow: 0 4px 12px rgba(0,0,0,.6); }
+  .tc-pad { position: absolute; right: calc(14px + env(safe-area-inset-right, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    display: grid; grid-template-areas: ". top ." "left . right" ". bottom ."; grid-template-columns: repeat(3, 62px); grid-template-rows: repeat(3, 62px);
+    pointer-events: auto; touch-action: none; }
+  .tc-btn { all: unset; box-sizing: border-box; width: 72px; height: 72px; margin: -5px; border-radius: 50%; display: grid; place-content: center; gap: 1px; text-align: center;
+    background: radial-gradient(circle at 40% 30%, rgba(140,24,16,.88), rgba(34,5,4,.88)); border: 2px solid rgba(232,182,74,.75);
+    box-shadow: 0 4px 14px rgba(0,0,0,.55); color: var(--cream); touch-action: none; -webkit-tap-highlight-color: transparent; transition: transform .06s; }
+  .tc-btn b { font: 800 11px 'Rubik', sans-serif; letter-spacing: .06em; }
+  .tc-btn i { font: 700 10px 'Rubik', sans-serif; font-style: normal; color: #d9b46a; }
+  .tc-btn.down { transform: scale(.9); background: radial-gradient(circle at 40% 30%, rgba(220,60,30,.95), rgba(80,10,6,.95)); border-color: #fff2b0; }
+  .tc-special { border-color: rgba(120,190,230,.7); }
+  .tc-special.ready { border-color: #bdeeff; box-shadow: 0 0 0 3px rgba(74,200,255,.45), 0 0 18px #4ac8ff; }
+  .tc-top { position: absolute; top: calc(96px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); display: flex; gap: 12px; pointer-events: auto; }
+  .tc-mini { all: unset; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; color: var(--cream);
+    background: rgba(10,2,2,.6); border: 1px solid rgba(232,182,74,.55); -webkit-tap-highlight-color: transparent; }
+  body.touch #pauseTip { display: none; }
+  .rotate { display: none; margin-top: 10px; font: 700 12px 'Rubik'; letter-spacing: .1em; color: #ffe0a0; }
+  @media (orientation: portrait) { body.touch .rotate { display: block; } }
+  /* small screens: a slimmer HUD */
+  @media (max-width: 700px), (max-height: 460px) {
+    #hud { padding: 8px 10px 0; gap: 8px; }
+    .bar { height: 16px; }
+    .nm b { font-size: 12px; } .nm i { display: none; }
+    .wins span { width: 11px; height: 11px; }
+    .clock { width: 50px; height: 50px; font-size: 21px; border-width: 2px; }
+    .meter { height: 4px; }
+    .tc-top { top: calc(70px + env(safe-area-inset-top, 0px)); }
+    #banner .t { font-size: clamp(40px, 12vw, 90px); }
+  }
+  /* short landscape screens (phones on their side): logo beside the menu, everything sized by height */
+  @media (max-height: 520px) and (orientation: landscape) {
+    .logo .menorah { width: 15vh; margin-bottom: 0; }
+    .logo .w { font-size: clamp(26px, 13vh, 90px); }
+    .logo .n { font-size: clamp(32px, 16vh, 110px); }
+    .logo .he { font-size: 13px; margin-top: 6px; }
+    .logo .remake { margin-top: 6px; font-size: 10px; padding: 2px 8px; }
+    .press { margin-top: 3vh; }
+    #title.on { display: grid; grid-template-columns: auto auto; align-content: center; justify-content: center; column-gap: 5vw; }
+    #title [data-logo] { grid-row: 1 / span 3; align-self: center; }
+    #title .logo { transform: none; margin: 0; }
+    #title .menu { margin-top: 0; min-width: 0; }
+    .menu button { padding: 4px 22px; font-size: 17px; }
+    .menu button span { font-size: 10px; }
+    .credit { margin-top: 8px; font-size: 10px; padding: 4px 10px; }
+    .foot { display: none; }
+    #select { padding-top: 1vh; }
+    .sel-top .mini { font-size: 20px; } .sel-top h2 { font-size: 11px; margin-top: 2px; }
+    #grid { margin-top: 1vh; padding: 6px; grid-template-columns: repeat(6, clamp(40px, 12vh, 70px)); }
+    .selname { bottom: 2vh; } .selname .he { font-size: 18px; } .selname .spd { display: none; }
+    .sel-help { display: none; }
+  }
   #mute { position: absolute; right: 12px; bottom: 10px; font-size: 11px; color: #a07a44; letter-spacing: .1em; pointer-events: none; }
 </style>
 <script type="importmap">
@@ -232,6 +292,7 @@
       <button id="diffBtn">CPU: NORMAL<span dir="rtl">רמת קושי: רגיל</span></button>
       <button>CONTROLS<span dir="rtl">שליטה</span></button>
     </nav>
+    <div class="rotate">↻ Best played in landscape · <span dir="rtl">מומלץ לשחק לרוחב</span></div>
     <a class="credit" href="https://www.instagram.com/reel/Dd37xNRiz8x/" target="_blank" rel="noopener">
       Original idea &amp; game by <b>@kishkosh_1111</b> · watch the reel on Instagram ↗
       <span dir="rtl">הרעיון והמשחק המקורי: ‎@kishkosh_1111</span>

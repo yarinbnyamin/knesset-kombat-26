@@ -44,6 +44,7 @@ In later commits, follow-up prompts asked Claude to use Israel's top 10 politici
 - **11 fighters:** 10 politicians as big-head cartoon caricatures (hair, beards, glasses, knitted and velvet kippot), plus Tung Tung Sahur.
 - **Parliamentary Fatality:** a giant gavel flattens the loser.
 - **Modes:** 1 player vs CPU, 2 players on one keyboard, CPU vs CPU. Gamepads are supported.
+- **Phones and tablets:** on-screen joystick and buttons appear automatically on touch screens (best in landscape).
 - **CPU difficulty:** Easy, Normal, Hard or Knesset Veteran, set on the title screen (←/→ on the CPU item). Your choice is remembered.
 
 ## Roster
